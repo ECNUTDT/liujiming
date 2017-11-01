@@ -176,6 +176,13 @@ for(int i=0;i<n+1;i++){
 	element_set(polynomial_q,element_long_i);
 	element_pow2_zn(D[i],g2,polynomial_q,T[i],r[i]);
 	element_printf("D-%d = %B\n",i, D[i]);
+	
+	//Dd FILE	
+	FILE *fc;
+	fc=fopen("../..//data/extract_data/Dd","w+");
+	element_fprintf(fc,",\r\"d-%d\":\"%B\"",i, d[i]);
+	element_fprintf(fc,",\r\"D-%d\":\"%B\"",i, D[i]);
+	fclose(fc);
 }
 
 //clear element
