@@ -80,18 +80,18 @@ element_printf("A = %B\n", A);
 FILE *fc;
 fc=fopen("../..//data/setup_data/PP","w+");
 element_fprintf(fc,"{\"g\":\"%B\"",g);
-element_fprintf(fc,",\"g1\":\"%B\"",g1);
-element_fprintf(fc,",\"g2\":\"%B\"",g2);
-element_fprintf(fc,",\"z\":\"%B\"",z);
-element_fprintf(fc,",\"v\":\"%B\"",v);
-element_fprintf(fc,",\"A\":\"%B\"",A);
+element_fprintf(fc,",\r\"g1\":\"%B\"",g1);
+element_fprintf(fc,",\r\"g2\":\"%B\"",g2);
+element_fprintf(fc,",\r\"z\":\"%B\"",z);
+element_fprintf(fc,",\r\"v\":\"%B\"",v);
+element_fprintf(fc,",\r\"A\":\"%B\"",A);
 for (int i=0;i<m;i++){
 	
-	element_fprintf(fc,",\"V[%d]\":\"%B\"",i,V[i]);
+	element_fprintf(fc,",\r\"V-%d\":\"%B\"",i,V[i]);
 }
 for (int i=0;i<n;i++){
 
-	element_fprintf(fc,",\"T[%d]\":\"%B\"",i,T[i]);
+	element_fprintf(fc,",\r\"T-%d\":\"%B\"",i,T[i]);
 	
 }
 element_fprintf(fc,"}");
@@ -99,7 +99,7 @@ fclose(fc);
 
 //write file MK :y
 fc=fopen("../../data/setup_data/MK","w+");
-element_fprintf(fc,"{\"A\":\"%B\"",A);
+element_fprintf(fc,"{\"y\":\"%B\"",y);
 fclose(fc);
 
 
