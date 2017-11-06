@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <math.h>
 
-//gcc -o setup setup.c -L. -lgmp -lpbc
-//./setup <../../data/param/a.param 
+//gcc -o extract extract.c -L. -lgmp -lpbc
+//./extract <../../data/param/a.param 
 
 
 int main(int argc, char **argv) {
@@ -19,12 +19,12 @@ element_t z,y;
 
 
 
-//int n,m;
+//int n,m,d;
 //scanf("%d %d", &n,&m);
-int n=10,m=10;
+int n=10,m=10,degree=5;
 
 
-element_t t[n];
+element_t t[n+1];
 element_t Z[m];
 element_t V[m];
 element_t d[n+1];
@@ -33,6 +33,7 @@ element_t D[n+1];
 element_t w[n+1];
 element_t r[n+1];
 element_t T[n+1];
+element_t q[degree];
 
 element_t element_long_i;
 element_t element_long_n;
@@ -63,8 +64,9 @@ element_init_Zr(y,pairing);
 element_init_Zr(z,pairing);
 element_init_GT(A,pairing);
 
+//--------SETUP--------------
 element_random(g);
- //element_printf("g = %B\n", g);
+element_printf("g = %B\n", g);
 
 element_random(g2);
 //element_printf("g2 = %B\n", g2);
@@ -77,15 +79,15 @@ element_random(z);
 //element_printf("z = %B\n", z);
 
 
-for (int i=0;i<n;i++){
+for (int i=0;i<n+1;i++){
 	element_init_G1(t[i],pairing);
 	element_random(t[i]);
-	//element_printf("T[%d] = %B\n",i, T[i]);
+	//element_printf("t[%d] = %B\n",i, t[i]);
 }
 
 for (int i=0;i<m;i++){
 	element_init_Zr(Z[i],pairing);
-	//element_random(Z[i]);
+	element_random(Z[i]);
 }
 
 for (int i=0;i<m;i++){
@@ -94,19 +96,18 @@ for (int i=0;i<m;i++){
 	//element_printf("V[%d] = %B\n",i, V[i]);
 }
 
-/*
+
 element_pow_zn(g1,g,y);
-element_printf("g1 = %B\n", g1);
+//element_printf("g1 = %B\n", g1);
 
 element_pow_zn(v,g,z);
-element_printf("v = %B\n", v);
+//element_printf("v = %B\n", v);
 
 element_pairing(A,g1,g2);
-element_printf("A = %B\n", A);
-*/
-element_printf("===============start===============");
+//element_printf("A = %B\n", A);
 
 
+//--------EXTRACT--------------
 for(int i=0;i<n+1;i++){
 	
 	
@@ -117,32 +118,37 @@ for(int i=0;i<n+1;i++){
 	element_random(r[i]);
 }
 
+
+
+//delta
+element_init_Zr(temp_delta,pairing);
+element_init_G1(temp_pow_delta,pairing);
+element_init_G1(temp_delta_pai,pairing);
+element_init_Zr(temp_sub1,pairing);
+element_init_Zr(temp_sub2,pairing);
+element_init_Zr(temp_div,pairing);
+
+
+
 for(int i=0;i<n+1;i++){
-
-	
-
 	//di=element_pow_zn(di,g,-ri) 
 	element_init_G1(d[i],pairing);
 	element_init_Zr(temp_neg_ri,pairing);
 	element_neg(temp_neg_ri,r[i]);
-	
 	element_pow_zn(d[i],g,temp_neg_ri);
 	element_printf("d-%d = %B\n",i, d[i]);
 
-	//delta
-	element_init_Zr(temp_delta,pairing);
-	element_init_G1(temp_pow_delta,pairing);
-	element_init_G1(temp_delta_pai,pairing);
-	element_init_Zr(temp_sub1,pairing);
-	element_init_Zr(temp_sub2,pairing);
-	element_init_Zr(temp_div,pairing);
-
+	//π△(x) 
 	element_set1(temp_delta_pai);
 	for(int j=0;j<n+1;j++){
 		element_set1(temp_delta);
+		element_set0(temp_sub1);
+		element_set0(temp_sub2);
 		//element_printf("temp_delta-%d = %B\n",j, temp_delta);
 		for(int k=0;k<n+1;k++){
-			if(k==j) continue;
+			
+			
+			if(k == j) continue;
 			else if(k==i) continue;
 			else {
 				element_sub(temp_sub1,w[i],w[k]);
@@ -150,40 +156,55 @@ for(int i=0;i<n+1;i++){
 				element_div(temp_div,temp_sub1,temp_sub2);
 				element_mul(temp_delta,temp_delta,temp_div);
 			}
+			
 		}
-		//element_printf("temp_delta-%d = %B\n",j, temp_delta);
-		element_pow_zn(temp_pow_delta,t[i],temp_delta);
+		element_pow_zn(temp_pow_delta,t[i],temp_delta);//t[i]<i:1-n+1>
 		element_mul(temp_delta_pai,temp_delta_pai,temp_pow_delta);
-		
-		
+				
 	}	
-	//element_printf("temp_delta_pai-%d = %B\n",i, temp_delta_pai);
-	
-	//T(X)=element_pow_zn(g2^(x^n)) ti^*
+
+	//T(X)=g2^(x^n)*π△(x) 
 	element_init_G1(T[i],pairing);
 	element_init_Zr(temp_xn,pairing);
 	element_set_si(element_long_i,(signed long int)i);
 	element_set_si(element_long_n,(signed long int)n);
-
 	element_pow_zn(temp_xn,w[i],element_long_n);
 	element_pow_zn(T[i],g2,temp_xn);
 	element_mul(T[i],temp_delta_pai,T[i]);
-	//element_printf("T-%d = %B\n",i, T[i]);
 
 	//Di=element_pow2_zn(Di,g2,q(i),T(i),ri)
 	element_init_G1(D[i],pairing);
 	element_init_Zr(polynomial_q,pairing);
-	element_set(polynomial_q,element_long_i);
+	element_set0(polynomial_q);
+
+	//q(i)=r1*i^(d-1)+r2*(d-2)+.....+y
+	for(int l=0;l<degree;l++){
+		element_init_Zr(q[l],pairing);
+		element_random(q[l]);
+		if(l==0) element_set(q[l],y);
+		if(l==degree-1) {
+			while(element_is0(q[l])) element_random(q[l]);
+		}
+		
+		element_pow_zn(temp_xn,w[i],element_long_n);
+		element_mul(temp_xn,temp_xn,q[l]);
+		element_add(polynomial_q,polynomial_q,temp_xn);
+	}
 	element_pow2_zn(D[i],g2,polynomial_q,T[i],r[i]);
 	element_printf("D-%d = %B\n",i, D[i]);
 	
-	//Dd FILE	
-	FILE *fc;
-	fc=fopen("../..//data/extract_data/Dd","w+");
+}
+
+//write file di	
+FILE *fc;
+fc=fopen("../..//data/extract_data/Dd","w+");
+for(int i=0;i<n+1;i++){
 	element_fprintf(fc,",\r\"d-%d\":\"%B\"",i, d[i]);
 	element_fprintf(fc,",\r\"D-%d\":\"%B\"",i, D[i]);
-	fclose(fc);
 }
+fclose(fc);
+
+
 
 //clear element
 element_clear(g);
@@ -192,6 +213,21 @@ element_clear(g2);
 element_clear(y);
 element_clear(z);
 element_clear(v);
+
+
+element_clear(element_long_i);
+element_clear(element_long_n);
+element_clear(temp_neg_ri);
+element_clear(temp_pow_delta);
+element_clear(temp_delta);
+element_clear(temp_delta_pai);
+element_clear(temp_xn);
+element_clear(temp_sub1);
+element_clear(temp_sub2);
+element_clear(temp_div);
+
+
+
 pairing_clear(pairing);
 
 return 0;
