@@ -195,13 +195,16 @@ for(int i=0;i<n+1;i++){
 	
 }
 
-//write file di	
+//write file Dd	
 FILE *fc;
 fc=fopen("../..//data/extract_data/Dd","w+");
+element_fprintf(fc,"{");
 for(int i=0;i<n+1;i++){
-	element_fprintf(fc,",\r\"d-%d\":\"%B\"",i, d[i]);
+	if(i>0) element_fprintf(fc,",");
+	element_fprintf(fc,"\r\"d-%d\":\"%B\"",i, d[i]);
 	element_fprintf(fc,",\r\"D-%d\":\"%B\"",i, D[i]);
 }
+element_fprintf(fc,"\r}");
 fclose(fc);
 
 

@@ -94,12 +94,12 @@ for (int i=0;i<n;i++){
 	element_fprintf(fc,",\r\"T-%d\":\"%B\"",i,T[i]);
 	
 }
-element_fprintf(fc,"}");
+element_fprintf(fc,"\r}");
 fclose(fc);
 
 //write file MK :y
 fc=fopen("../../data/setup_data/MK","w+");
-element_fprintf(fc,"{\"y\":\"%B\"",y);
+element_fprintf(fc,"{\"y\":\"%B\"}",y);
 fclose(fc);
 
 
