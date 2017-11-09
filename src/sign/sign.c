@@ -228,11 +228,12 @@ for(int i=0;i<m;i++){
 	element_pow_zn(temp_G1,V[i],miu[i]);
 	element_mul(pai_v,pai_v,temp_G1);
 	element_printf("\n=====%d=====\n%B",i,pai_v);
-	if(i==m-3) break;
+	//if(i==m-3) continue;
 	
 }
 
-element_printf("=============");
+
+
 element_t temp_neg_si;
 element_init_Zr(temp_neg_si,pairing);
 for (int i=0;i<n+1;i++){
@@ -240,11 +241,16 @@ for (int i=0;i<n+1;i++){
 	element_random(s[i]);
 	element_neg(temp_neg_si,s[i]);
 	for(int j=0;j<3;j++){
-		element_init_G1(S[i][j],pairing);
-		element_set(S[i][1],d[j]);
+	element_init_G1(S[i][j],pairing);
+		
+	}
+		element_mul(temp_G1,pai_v,v);
+		element_pow_zn(temp_G1,temp_G1,s[i]);
+		element_mul(temp_G1,temp_G1,D[i]);
+		element_set(S[i][0],temp_G1);
+		element_set(S[i][1],d[i]);
 		element_pow_zn(temp_G1,g,temp_neg_si);
 		element_set(S[i][2],temp_G1);
-	}
 }
 
 
@@ -254,7 +260,7 @@ FILE *fc;
 fc=fopen("../../data/sign_data/Sign","w+");
 element_fprintf(fc,"{");
 for(int i=0;i<n+1;i++){
-
+	
 }
 element_fprintf(fc,"\r}");
 fclose(fc);
