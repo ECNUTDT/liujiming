@@ -241,7 +241,7 @@ for (int i=0;i<n+1;i++){
 	element_random(s[i]);
 	element_neg(temp_neg_si,s[i]);
 	for(int j=0;j<3;j++){
-	element_init_G1(S[i][j],pairing);
+		element_init_G1(S[i][j],pairing);
 		
 	}
 		element_mul(temp_G1,pai_v,v);
@@ -260,7 +260,9 @@ FILE *fc;
 fc=fopen("../../data/sign_data/Sign","w+");
 element_fprintf(fc,"{");
 for(int i=0;i<n+1;i++){
-	
+	element_fprintf(fc,"\r\"S-%d-1\":\"%B\"",i, S[i][0]);
+	element_fprintf(fc,"\r\"S-%d-2\":\"%B\"",i, S[i][1]);
+	element_fprintf(fc,"\r\"S-%d-3\":\"%B\"",i, S[i][2]);
 }
 element_fprintf(fc,"\r}");
 fclose(fc);
