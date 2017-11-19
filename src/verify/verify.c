@@ -6,8 +6,8 @@
 #include <stdlib.h> 
 
 
-//gcc -o sign sign.c -L. -lgmp -lpbc
-//./sign <../../data/param/a.param 
+//gcc -o verify verify.c -L. -lgmp -lpbc
+//./verify <../../data/param/a.param 
 
 
 int main(int argc, char **argv) {
@@ -16,8 +16,8 @@ int main(int argc, char **argv) {
 pairing_t pairing; 
 element_t g,g1,g2;
 element_t A;
-element_t v;
-element_t z,y;
+element_t vv;
+element_t zz,y;
 
 
 
@@ -67,41 +67,16 @@ element_init_Zr(element_long_n,pairing);
 element_init_G1(g,pairing);
 element_init_G1(g1,pairing);
 element_init_G1(g2,pairing);
-element_init_G1(v,pairing);
+element_init_G1(vv,pairing);
 element_init_Zr(y,pairing);
-element_init_Zr(z,pairing);
+element_init_Zr(zz,pairing);
 element_init_GT(A,pairing);
 
-char* str="76794694781183289556915698583624103921063413964367385662225670703628416913618214459476707216239711143815363248997679867517448662092880568570217328577056715082897505846747235950749109596558737919561125054842757776548508220404079200400120171875332425702500370972342317374668041488772875181617059537446057415909";
-char* stry="479669737328012410214860217391068436330049605306";
-
-
-
-
-
-
-
-int readB=element_from_bytes(g,str);
-
-int readY=element_from_bytes(y,stry);
-
-int readB=element_to_bytes(str,g);
-
-
-element_printf("====read======%d====%d=====\n", readB,readY);
-
-element_printf("g = %B\n", g);
-
-element_printf("y = %B\n", y);
-
-
-
-return 0;
 
 
 //--------SETUP--------------
 element_random(g);
-element_printf("g = %B\n", g);
+//element_printf("g = %B\n", g);
 
 
 element_random(g2);
@@ -111,8 +86,8 @@ element_random(y);
 //element_printf("y = %B\n", y);
 
 
-element_random(z);
-//element_printf("z = %B\n", z);
+element_random(zz);
+//element_printf("z = %B\n", zz);
 
 
 for (int i=0;i<n+1;i++){
@@ -136,11 +111,11 @@ for (int i=0;i<m;i++){
 element_pow_zn(g1,g,y);
 //element_printf("g1 = %B\n", g1);
 
-element_pow_zn(v,g,z);
+element_pow_zn(vv,g,zz);
 //element_printf("v = %B\n", v);
 
 element_pairing(A,g1,g2);
-//element_printf("A = %B\n", A);
+element_printf("A = %B\n", A);
 
 
 //--------EXTRACT--------------
@@ -172,7 +147,7 @@ for(int i=0;i<n+1;i++){
 	element_init_Zr(temp_neg_ri,pairing);
 	element_neg(temp_neg_ri,r[i]);
 	element_pow_zn(d[i],g,temp_neg_ri);
-	element_printf("d-%d = %B\n",i, d[i]);
+	//element_printf("d-%d = %B\n",i, d[i]);
 
 	//π△(x) 
 	element_set1(temp_delta_pai);
@@ -227,11 +202,12 @@ for(int i=0;i<n+1;i++){
 		element_add(polynomial_q,polynomial_q,temp_xn);
 	}
 	element_pow2_zn(D[i],g2,polynomial_q,T[i],r[i]);
-	element_printf("D-%d = %B\n",i, D[i]);
+	//element_printf("D-%d = %B\n",i, D[i]);
 	
 }
 
 //--------EXTRACT--------------
+//∏vj
 element_init_G1(temp_G1,pairing);
 element_init_G1(pai_v,pairing);
 element_set1(pai_v);
@@ -241,12 +217,11 @@ for(int i=0;i<m;i++){
 	element_set_si(miu[i],(signed long int)num);
 	element_pow_zn(temp_G1,V[i],miu[i]);
 	element_mul(pai_v,pai_v,temp_G1);
-	element_printf("\n=====%d=====\n%B",i,pai_v);
-	//if(i==m-3) continue;
-	
+	//element_printf("\n=====%d=====\n%B",i,pai_v);
 }
 
-
+//v'*∏vj
+element_mul(pai_v,pai_v,vv);
 
 element_t temp_neg_si;
 element_init_Zr(temp_neg_si,pairing);
@@ -257,8 +232,8 @@ for (int i=0;i<n+1;i++){
 	for(int j=0;j<3;j++){
 		element_init_G1(S[i][j],pairing);
 	}
-		element_mul(temp_G1,pai_v,v);
-		element_pow_zn(temp_G1,temp_G1,s[i]);
+		
+		element_pow_zn(temp_G1,pai_v,s[i]);
 		element_mul(temp_G1,temp_G1,D[i]);
 		element_set(S[i][0],temp_G1);
 		element_set(S[i][1],d[i]);
@@ -266,19 +241,69 @@ for (int i=0;i<n+1;i++){
 		element_set(S[i][2],temp_G1);
 }
 
+//--------Verify--------------
+element_t x1;
+element_t x2;
+element_t x3;
+element_t temp_si;
+element_t temp_si_pai;
+element_init_GT(x1,pairing);
+element_init_GT(x2,pairing);
+element_init_GT(x3,pairing);
+element_init_GT(temp_si,pairing);
+element_init_GT(temp_si_pai,pairing);
+element_set1(temp_si_pai);
 
+element_t temp_GT;
+element_init_GT(temp_GT,pairing);
 
-//write file S	
-FILE *fc;
-fc=fopen("../../data/sign_data/Sign","w+");
-element_fprintf(fc,"{");
+element_printf("=====start verifying=====\n");
 for(int i=0;i<n+1;i++){
-	element_fprintf(fc,"\r\"S-%d-1\":\"%B\"",i, S[i][0]);
-	element_fprintf(fc,"\r\"S-%d-2\":\"%B\"",i, S[i][1]);
-	element_fprintf(fc,"\r\"S-%d-3\":\"%B\"",i, S[i][2]);
+
+pairing_apply(x1,S[i][0],g,pairing);
+//element_printf("=====x1=====\n%B\n",x1);
+pairing_apply(x2,S[i][1],T[i],pairing);
+//element_printf("=====x2=====\n%B\n",x2);
+pairing_apply(x3,S[i][2],pai_v,pairing);
+
+
+
+element_mul(temp_GT,x1,x2);
+element_mul(temp_GT,temp_GT,x3);
+//element_printf("=====temp_GT=====\n%B\n",temp_GT);
+
+//△i,s(0)
+element_set1(temp_delta_pai);
+element_set1(temp_delta);
+for(int k=0;k<n+1;k++){
+	element_set0(temp_sub1);
+	element_set0(temp_sub2);
+	if(k == i) continue;
+	else {
+		element_sub(temp_sub1,temp_sub1,w[k]);
+		element_sub(temp_sub2,w[i],w[k]);
+		element_div(temp_div,temp_sub1,temp_sub2);
+		element_mul(temp_delta,temp_delta,temp_div);
+	}	
+}		
+
+//element_printf("=====temp_delta=====\n%B\n",temp_delta);	
+
+element_pow_zn(temp_si,temp_GT,temp_delta);
+//element_printf("=====temp_si=====\n%B\n",temp_si);
+
+element_mul(temp_si_pai,temp_si_pai,temp_si);
+//element_printf("=====temp_si_pai=====\n%B\n",temp_si_pai);
+
 }
-element_fprintf(fc,"\r}");
-fclose(fc);
+
+
+
+element_printf("A'=%B\n",temp_si_pai);
+
+
+element_printf("===========output:%d===========\n",(element_cmp(A,temp_si_pai)?0:1));
+
 
 
 
@@ -287,8 +312,8 @@ element_clear(g);
 element_clear(g1);
 element_clear(g2);
 element_clear(y);
-element_clear(z);
-element_clear(v);
+element_clear(zz);
+element_clear(vv);
 
 
 element_clear(element_long_i);

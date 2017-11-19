@@ -64,9 +64,29 @@ element_init_Zr(y,pairing);
 element_init_Zr(z,pairing);
 element_init_GT(A,pairing);
 
+element_t ggg;
+element_init_G1(ggg,pairing);
+
+element_random(ggg);
+element_printf("ggg = %B\n", ggg);
+
+
+
+int n2 = pairing_length_in_bytes_x_only_G1(pairing);
+// Alternative:
+//   int n = element_length_in_bytes_x_only(sig);
+unsigned char *data = malloc(n2);
+element_to_bytes_compressed(data, ggg);
+element_printf("data = %s\n", data);
+
+element_from_bytes_compressed(ggg,data);
+element_printf("ggg = %B\n", ggg);
+
 //--------SETUP--------------
-element_random(g);
-element_printf("g = %B\n", g);
+element_random(ggg);
+element_printf("ggg = %B\n", ggg);
+
+return 0;
 
 element_random(g2);
 //element_printf("g2 = %B\n", g2);
