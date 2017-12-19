@@ -1,11 +1,30 @@
 
 #include "/usr/local/include/pbc/pbc.h"
 #include "/usr/local/include/pbc/pbc_test.h"
+#include "json/json.h"
+
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 #include <stdio.h>
 
+using namespace std;
 
-//gcc -o setup setup.c -L. -lgmp -lpbc
+const int N=10;
+const int M=10;
+
+
+//g++ -o setup setup.c -L. -lgmp -lpbc -ljson
 //./setup <../../data/param/a.param 
+
+unsigned char* transfer(element_t t){
+
+  int leng = element_length_in_bytes(t);
+  unsigned char *p = new unsigned char[leng + 1];
+  int writeLength = element_to_bytes_compressed(p,t);
+  return p;
+}
 
 
 int main(int argc, char **argv) {
@@ -17,14 +36,9 @@ element_t A;
 element_t v;
 element_t z,y;
 
-
-//int n,m;
-//scanf("%d %d", &n,&m);
-int n=10,m=10;
-
-element_t T[n];
-element_t Z[m];
-element_t V[m];
+element_t T[N];
+element_t Z[M];
+element_t V[M];
 
 pbc_demo_pairing_init(pairing, argc, argv);
 
@@ -37,46 +51,56 @@ element_init_Zr(z,pairing);
 element_init_GT(A,pairing);
 
 element_random(g);
- element_printf("g = %B\n", g);
-
 element_random(g2);
-element_printf("g2 = %B\n", g2);
-
 element_random(y);
-element_printf("y = %B\n", y);
-
-
 element_random(z);
-element_printf("z = %B\n", z);
 
 
-for (int i=0;i<n;i++){
+element_pow_zn(g1,g,y);
+element_pow_zn(v,g,z);
+element_pairing(A,g1,g2);
+
+/*
+Json::Value root;
+Json::Value root1;
+
+Json::StyledWriter sw;
+Json::StyledWriter sw1;
+
+ofstream os;
+ofstream os1;
+
+os.open("../../data/setup_data/pp");
+
+root["g"]=Json::Value((char*)transfer(g));  
+root["g1"]=Json::Value((char*)transfer(g1));  
+root["g2"]=Json::Value((char*)transfer(g2));  
+
+os << sw.write(root);  
+  os.close();  
+*/
+
+for (int i=0;i<N;i++){
 	element_init_G1(T[i],pairing);
 	element_random(T[i]);
 	element_printf("T[%d] = %B\n",i, T[i]);
 }
 
-for (int i=0;i<m;i++){
+for (int i=0;i<M;i++){
 	element_init_Zr(Z[i],pairing);
 	element_random(Z[i]);
 }
 
-for (int i=0;i<m;i++){
+for (int i=0;i<M;i++){
 	element_init_G1(V[i],pairing);
 	element_pow_zn(V[i],g,Z[i]);
 	element_printf("V[%d] = %B\n",i, V[i]);
 }
 
-element_pow_zn(g1,g,y);
-element_printf("g1 = %B\n", g1);
 
-element_pow_zn(v,g,z);
-element_printf("v = %B\n", v);
-
-element_pairing(A,g1,g2);
-element_printf("A = %B\n", A);
 
 //write file PP : g,g1,g2,v,v1...vm,t1...tn,A
+/*
 FILE *fc;
 fc=fopen("../..//data/setup_data/PP","w+");
 element_fprintf(fc,"{\"g\":\"%B\"",g);
@@ -85,22 +109,78 @@ element_fprintf(fc,",\r\"g2\":\"%B\"",g2);
 element_fprintf(fc,",\r\"z\":\"%B\"",z);
 element_fprintf(fc,",\r\"v\":\"%B\"",v);
 element_fprintf(fc,",\r\"A\":\"%B\"",A);
-for (int i=0;i<m;i++){
-	
+for (int i=0;i<M;i++){
 	element_fprintf(fc,",\r\"V-%d\":\"%B\"",i,V[i]);
 }
-for (int i=0;i<n;i++){
-
+for (int i=0;i<N;i++){
 	element_fprintf(fc,",\r\"T-%d\":\"%B\"",i,T[i]);
-	
 }
 element_fprintf(fc,"\r}");
 fclose(fc);
+*/
 
-//write file MK :y
-fc=fopen("../../data/setup_data/MK","w+");
-element_fprintf(fc,"{\"y\":\"%B\"}",y);
-fclose(fc);
+//jsoncpp
+    Json::Value root;
+    Json::StyledWriter sw;
+    ofstream os;
+    os.open("../../data/setup_data/PP");
+
+    root["g"] = Json::Value((char * ) transfer(g));
+    root["g1"] = Json::Value((char * ) transfer(g1));
+    root["g2"] = Json::Value((char * ) transfer(g2));
+    root["z"] = Json::Value((char * ) transfer(z));
+    root["v"] = Json::Value((char * ) transfer(v));
+    root["A"] = Json::Value((char * ) transfer(A));
+    for (int i = 0; i < M; i++) {
+        string index = "";
+        stringstream st;
+        st << (i + 1);
+        st >> index;
+        index = "v-" + index;
+        root[index] = Json::Value((char * ) transfer(V[i]));
+    }
+    for (int i = 0; i < N; i++) {
+        string index = "";
+        stringstream st;
+        st << (i + 1);
+        st >> index;
+        index = "t-" + index;
+        root[index] = Json::Value((char * ) transfer(T[i]));
+    }
+    os << sw.write(root);
+    os.close();
+
+    //write file MK :y
+    /*
+	fc = fopen("../../data/setup_data/MK", "w+");
+    element_fprintf(fc, "{\"y\":\"%B\"}", y);
+    fclose(fc);
+	*/
+
+    Json::Value root1;
+    Json::StyledWriter sw1;
+    ofstream os1;
+    os1.open("../../data/setup_data/PP");
+    root1["y"] = Json::Value((char * ) transfer(y));
+    os << sw.write(root1);
+    os1.close();
+
+    //create file MK to keep the variables 
+    if (freopen("../../data/setup_data/MK", "w", stdout) == NULL) {
+        fprintf(stderr, "error2\n");
+    }
+    printf("{\n");
+    element_printf("\"y\":\"%B\"\n", y);
+    //end writing data to file MK 
+    printf("}\n");
+
+    fclose(stdout);
+
+    os1.open("../../data/config/config");
+    root1["N"] = Json::Value(N);
+    root1["M"] = Json::Value(M);
+    os1 << sw.write(root1);
+    os1.close();
 
 
 //clear element
