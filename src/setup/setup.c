@@ -36,7 +36,7 @@ element_t A;
 element_t v;
 element_t z,y;
 
-element_t T[N];
+element_t T[N+1];
 element_t Z[M];
 element_t V[M];
 
@@ -60,27 +60,7 @@ element_pow_zn(g1,g,y);
 element_pow_zn(v,g,z);
 element_pairing(A,g1,g2);
 
-/*
-Json::Value root;
-Json::Value root1;
-
-Json::StyledWriter sw;
-Json::StyledWriter sw1;
-
-ofstream os;
-ofstream os1;
-
-os.open("../../data/setup_data/pp");
-
-root["g"]=Json::Value((char*)transfer(g));  
-root["g1"]=Json::Value((char*)transfer(g1));  
-root["g2"]=Json::Value((char*)transfer(g2));  
-
-os << sw.write(root);  
-  os.close();  
-*/
-
-for (int i=0;i<N;i++){
+for (int i=0;i<N+1;i++){
 	element_init_G1(T[i],pairing);
 	element_random(T[i]);
 	element_printf("T[%d] = %B\n",i, T[i]);
@@ -97,7 +77,7 @@ for (int i=0;i<M;i++){
 	element_printf("V[%d] = %B\n",i, V[i]);
 }
 
-
+element_printf("A= %B\n",A);
 
 //write file PP : g,g1,g2,v,v1...vm,t1...tn,A
 /*
@@ -120,17 +100,22 @@ fclose(fc);
 */
 
 //jsoncpp
-    Json::Value root;
-    Json::StyledWriter sw;
-    ofstream os;
-    os.open("../../data/setup_data/PP");
+Json::Value root;
+Json::StyledWriter sw;
+ofstream os;
+os.open("../../data/setup_data/PP");
 
-    root["g"] = Json::Value((char * ) transfer(g));
-    root["g1"] = Json::Value((char * ) transfer(g1));
-    root["g2"] = Json::Value((char * ) transfer(g2));
-    root["z"] = Json::Value((char * ) transfer(z));
-    root["v"] = Json::Value((char * ) transfer(v));
-    root["A"] = Json::Value((char * ) transfer(A));
+root["g"] = Json::Value((char*) transfer(g));
+root["g1"] = Json::Value((char*) transfer(g1));
+root["g2"] = Json::Value((char*) transfer(g2));
+
+
+    
+
+root["v"] = Json::Value((char*) transfer(v));
+//root["z"] = Json::Value((char*) transfer(z));
+//root["A"] = Json::Value((char*) transfer(A));
+
     for (int i = 0; i < M; i++) {
         string index = "";
         stringstream st;
@@ -139,7 +124,7 @@ fclose(fc);
         index = "v-" + index;
         root[index] = Json::Value((char * ) transfer(V[i]));
     }
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < N+1; i++) {
         string index = "";
         stringstream st;
         st << (i + 1);
@@ -160,10 +145,7 @@ fclose(fc);
     Json::Value root1;
     Json::StyledWriter sw1;
     ofstream os1;
-    os1.open("../../data/setup_data/PP");
-    root1["y"] = Json::Value((char * ) transfer(y));
-    os << sw.write(root1);
-    os1.close();
+    
 
     //create file MK to keep the variables 
     if (freopen("../../data/setup_data/MK", "w", stdout) == NULL) {
@@ -176,11 +158,11 @@ fclose(fc);
 
     fclose(stdout);
 
-    os1.open("../../data/config/config");
-    root1["N"] = Json::Value(N);
-    root1["M"] = Json::Value(M);
-    os1 << sw.write(root1);
-    os1.close();
+os1.open("../../data/config/config");
+root1["N"] = Json::Value(N);
+root1["M"] = Json::Value(M);
+os1 << sw.write(root1);
+os1.close();
 
 
 //clear element

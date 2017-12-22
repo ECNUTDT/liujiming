@@ -1,38 +1,195 @@
 
 #include "/usr/local/include/pbc/pbc.h"
 #include "/usr/local/include/pbc/pbc_test.h"
+#include "json/json.h"
 #include <stdio.h>
 #include <math.h>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <string.h>
+#include <iterator>
 
-//gcc -o extract extract.c -L. -lgmp -lpbc
+using namespace std;
+
+
+const string configPath = "../../data/config/config";
+const string PPPath = "../../data/setup_data/PP";
+const string MKPath = "../../data/setup_data/MK";
+const int degree = 5;
+
+int N,M;
+element_t g,g1,g2;
+element_t v;
+element_t y;
+
+
+//g++ -o extract extract.c -L. -lgmp -lpbc -ljson
 //./extract <../../data/param/a.param 
+
+//
+unsigned char* transfer(element_t t){
+
+  int leng = element_length_in_bytes(t);
+  unsigned char *p = new unsigned char[leng + 1];
+  int writeLength = element_to_bytes_compressed(p,t);
+  return p;
+}
+void getJsonValueNKey(Json::Value value,int tag,pairing_t pairing,element_t *arrN,element_t *arrM){
+
+Json::Value::Members members;
+members = value.getMemberNames();
+int i = 0;
+for (Json::Value::Members::iterator iterMember = members.begin(); iterMember != members.end(); iterMember++){  
+  string strKey = *iterMember;
+	cout<<"strKey:"+strKey+"\n";
+
+    if (tag == 0) {
+        element_t temp;
+        element_init_G1(temp, pairing);
+        string str = value[strKey.c_str()].asString();
+        char * p;
+        int len = str.length();
+        p = new char[len + 1];
+        strcpy(p, str.c_str());
+        unsigned char * sb = (unsigned char * ) p;
+        element_from_bytes_compressed(temp, sb);
+        int pos = strKey.find("-");
+        if (pos == -1) {
+            if (strKey == "g") {
+                element_init_G1(g, pairing);
+                element_from_bytes_compressed(g, sb);
+            } else if (strKey == "g1") {
+                element_init_G1(g1, pairing);
+                element_from_bytes_compressed(g1, sb);
+            } else if (strKey == "g2") {
+                element_init_G1(g2, pairing);
+                element_from_bytes_compressed(g2, sb);
+            } else if (strKey == "v") {
+                element_init_G1(v, pairing);
+                element_from_bytes_compressed(v, sb);
+            }
+        } else {
+            string type = strKey.substr(0, pos);
+            string num = strKey.substr(pos + 1, strKey.size());
+            stringstream ss;
+            ss << num;
+            int index;
+            ss >> index;
+            if (type == "t") {
+                element_init_G1(arrN[index - 1], pairing);
+                element_from_bytes_compressed(arrN[index - 1], sb);
+            } else if (type == "v") {
+                element_init_G1(arrM[index - 1], pairing);
+                element_from_bytes_compressed(arrM[index - 1], sb);
+            }
+        }
+    }
+    if (tag == 1) {
+        element_init_Zr(y, pairing);
+        string strVal = value[strKey.c_str()].asString();
+        mpz_t gmp_y;
+        const char * chargmp_y = strVal.c_str();
+        mpz_init_set_str(gmp_y, chargmp_y, 10);
+        element_set_mpz(y, gmp_y);
+    }
+    if (tag == 2) {
+        int iVal = value[strKey.c_str()].asInt();
+        if (strKey == "N") {
+            N = iVal;
+        } else if (strKey == "M") {
+            M = iVal;
+        }
+    }
+
+}
+
+}
+string readFile(string path){
+	stringstream ss;
+	fstream readPathData(path.c_str());
+	ss << readPathData.rdbuf();
+	string data = ss.str();
+	ss.clear();
+	ss.str("");
+	readPathData.close();
+	return data;
+}
+
+
 
 
 int main(int argc, char **argv) {
 
 //clain element
-pairing_t pairing; 
-element_t g,g1,g2;
 element_t A;
-element_t v;
-element_t z,y;
+element_t z;
 
 
 
 //int n,m,d;
 //scanf("%d %d", &n,&m);
-int n=10,m=10,degree=5;
+//int n=10,m=10;
 
 
-element_t t[n+1];
-element_t Z[m];
-element_t V[m];
-element_t d[n+1];
-element_t D[n+1];
 
-element_t w[n+1];
-element_t r[n+1];
-element_t T[n+1];
+
+
+
+
+
+
+
+//--------READ FILE--------------
+//=============read data from file end===================
+string config = readFile(configPath);
+string PP = readFile(PPPath);
+string MK = readFile(MKPath);
+
+pairing_t pairing;
+pbc_demo_pairing_init(pairing, argc, argv);
+
+Json::Reader reader;
+Json::Reader reader1;
+Json::Reader reader2;
+Json::Value value;
+Json::Value value1;
+Json::Value value2;
+
+if(!reader2.parse(config,value2)){
+	cout<<"cannot read config file!\n";
+	return 0;
+}
+getJsonValueNKey(value2,2,pairing,NULL,NULL);
+element_t *t = new element_t[N];
+element_t *V = new element_t[M];
+
+
+if(!reader.parse(PP,value)){
+	cout<<"cannot read PP file!\n";
+	return 0;
+}
+getJsonValueNKey(value,0,pairing,t,V);
+
+
+if(!reader1.parse(MK,value1)){
+	cout<<"cannot read MK file!\n";
+	return 0;
+}
+getJsonValueNKey(value1,1,pairing,NULL,NULL);
+
+
+//--------EXTRACT--------------
+
+
+element_t Z[M];
+
+element_t d[N+1];
+element_t D[N+1];
+
+element_t w[N+1];
+element_t r[N+1];
+element_t T[N+1];
 element_t q[degree];
 
 element_t element_long_i;
@@ -49,86 +206,10 @@ element_t temp_div;
 
 element_t polynomial_q;
 
-
-pbc_demo_pairing_init(pairing, argc, argv);
-
 element_init_Zr(element_long_i,pairing);
 element_init_Zr(element_long_n,pairing);
 
-
-element_init_G1(g,pairing);
-element_init_G1(g1,pairing);
-element_init_G1(g2,pairing);
-element_init_G1(v,pairing);
-element_init_Zr(y,pairing);
-element_init_Zr(z,pairing);
-element_init_GT(A,pairing);
-
-element_t ggg;
-element_init_G1(ggg,pairing);
-
-element_random(ggg);
-element_printf("ggg = %B\n", ggg);
-
-
-
-int n2 = pairing_length_in_bytes_x_only_G1(pairing);
-// Alternative:
-//   int n = element_length_in_bytes_x_only(sig);
-unsigned char *data = malloc(n2);
-element_to_bytes_compressed(data, ggg);
-element_printf("data = %s\n", data);
-
-element_from_bytes_compressed(ggg,data);
-element_printf("ggg = %B\n", ggg);
-
-//--------SETUP--------------
-element_random(ggg);
-element_printf("ggg = %B\n", ggg);
-
-return 0;
-
-element_random(g2);
-//element_printf("g2 = %B\n", g2);
-
-element_random(y);
-//element_printf("y = %B\n", y);
-
-
-element_random(z);
-//element_printf("z = %B\n", z);
-
-
-for (int i=0;i<n+1;i++){
-	element_init_G1(t[i],pairing);
-	element_random(t[i]);
-	//element_printf("t[%d] = %B\n",i, t[i]);
-}
-
-for (int i=0;i<m;i++){
-	element_init_Zr(Z[i],pairing);
-	element_random(Z[i]);
-}
-
-for (int i=0;i<m;i++){
-	element_init_G1(V[i],pairing);
-	element_pow_zn(V[i],g,Z[i]);
-	//element_printf("V[%d] = %B\n",i, V[i]);
-}
-
-
-element_pow_zn(g1,g,y);
-//element_printf("g1 = %B\n", g1);
-
-element_pow_zn(v,g,z);
-//element_printf("v = %B\n", v);
-
-element_pairing(A,g1,g2);
-//element_printf("A = %B\n", A);
-
-
-//--------EXTRACT--------------
-for(int i=0;i<n+1;i++){
+for(int i=0;i<N+1;i++){
 	
 	
 	element_init_Zr(w[i],pairing);
@@ -150,7 +231,7 @@ element_init_Zr(temp_div,pairing);
 
 
 
-for(int i=0;i<n+1;i++){
+for(int i=0;i<N+1;i++){
 	//di=element_pow_zn(di,g,-ri) 
 	element_init_G1(d[i],pairing);
 	element_init_Zr(temp_neg_ri,pairing);
@@ -160,12 +241,12 @@ for(int i=0;i<n+1;i++){
 
 	//π△(x) 
 	element_set1(temp_delta_pai);
-	for(int j=0;j<n+1;j++){
+	for(int j=0;j<N+1;j++){
 		element_set1(temp_delta);
 		element_set0(temp_sub1);
 		element_set0(temp_sub2);
 		//element_printf("temp_delta-%d = %B\n",j, temp_delta);
-		for(int k=0;k<n+1;k++){
+		for(int k=0;k<N+1;k++){
 			
 			
 			if(k == j) continue;
@@ -187,7 +268,7 @@ for(int i=0;i<n+1;i++){
 	element_init_G1(T[i],pairing);
 	element_init_Zr(temp_xn,pairing);
 	element_set_si(element_long_i,(signed long int)i);
-	element_set_si(element_long_n,(signed long int)n);
+	element_set_si(element_long_n,(signed long int)N);
 	element_pow_zn(temp_xn,w[i],element_long_n);
 	element_pow_zn(T[i],g2,temp_xn);
 	element_mul(T[i],temp_delta_pai,T[i]);
@@ -215,17 +296,47 @@ for(int i=0;i<n+1;i++){
 	
 }
 
+
+
+/*
 //write file Dd	
 FILE *fc;
 fc=fopen("../..//data/extract_data/Dd","w+");
 element_fprintf(fc,"{");
-for(int i=0;i<n+1;i++){
+for(int i=0;i<N+1;i++){
 	if(i>0) element_fprintf(fc,",");
 	element_fprintf(fc,"\r\"d-%d\":\"%B\"",i, d[i]);
 	element_fprintf(fc,",\r\"D-%d\":\"%B\"",i, D[i]);
 }
 element_fprintf(fc,"\r}");
 fclose(fc);
+*/
+
+Json::Value root;
+Json::StyledWriter sw;
+ofstream os;
+os.open("../../data/extract_data/Dd");
+for (int i = 0; i < N+1; i++) {
+        string index = "";
+        stringstream st;
+        st << (i + 1);
+        st >> index;
+        index = "d-" + index;
+        root[index] = Json::Value((char * ) transfer(d[i]));
+}
+
+for (int i = 0; i < N+1; i++) {
+        string index = "";
+        stringstream st;
+        st << (i + 1);
+        st >> index;
+        index = "D-" + index;
+        root[index] = Json::Value((char * ) transfer(D[i]));
+}
+os << sw.write(root);
+os.close();
+
+
 
 
 
@@ -234,7 +345,6 @@ element_clear(g);
 element_clear(g1);
 element_clear(g2);
 element_clear(y);
-element_clear(z);
 element_clear(v);
 
 
@@ -249,6 +359,8 @@ element_clear(temp_sub1);
 element_clear(temp_sub2);
 element_clear(temp_div);
 
+delete []t;
+delete []V;
 
 
 pairing_clear(pairing);
@@ -256,4 +368,5 @@ pairing_clear(pairing);
 return 0;
 
 }
+
 
