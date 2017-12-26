@@ -1,13 +1,115 @@
-
 #include "/usr/local/include/pbc/pbc.h"
 #include "/usr/local/include/pbc/pbc_test.h"
+#include "json/json.h"
 #include <stdio.h>
 #include <math.h>
-#include <stdlib.h> 
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <string.h>
+#include <iterator>
+
+using namespace std;
 
 
-//gcc -o sign sign.c -L. -lgmp -lpbc
+//g++ -o sign sign.cpp -L. -lgmp -lpbc -ljson
 //./sign <../../data/param/a.param 
+
+const string configPath = "../../data/config/config";
+const string PPPath = "../../data/setup_data/PP";
+const string MKPath = "../../data/setup_data/MK";
+const int degree = 5;
+
+int N,M;
+
+//
+unsigned char* transfer(element_t t){
+
+  int leng = element_length_in_bytes(t);
+  unsigned char *p = new unsigned char[leng + 1];
+  int writeLength = element_to_bytes_compressed(p,t);
+  return p;
+}
+void getJsonValueNKey(Json::Value value,int tag,pairing_t pairing,element_t *arrN,element_t *arrM){
+
+Json::Value::Members members;
+members = value.getMemberNames();
+int i = 0;
+for (Json::Value::Members::iterator iterMember = members.begin(); iterMember != members.end(); iterMember++){  
+  string strKey = *iterMember;
+	cout<<"strKey:"+strKey+"\n";
+
+    if (tag == 0) {
+        element_t temp;
+        element_init_G1(temp, pairing);
+        string str = value[strKey.c_str()].asString();
+        char * p;
+        int len = str.length();
+        p = new char[len + 1];
+        strcpy(p, str.c_str());
+        unsigned char * sb = (unsigned char * ) p;
+        element_from_bytes_compressed(temp, sb);
+        int pos = strKey.find("-");
+        if (pos == -1) {
+            if (strKey == "g") {
+                element_init_G1(g, pairing);
+                element_from_bytes_compressed(g, sb);
+            } else if (strKey == "g1") {
+                element_init_G1(g1, pairing);
+                element_from_bytes_compressed(g1, sb);
+            } else if (strKey == "g2") {
+                element_init_G1(g2, pairing);
+                element_from_bytes_compressed(g2, sb);
+            } else if (strKey == "v") {
+                element_init_G1(v, pairing);
+                element_from_bytes_compressed(v, sb);
+            }
+        } else {
+            string type = strKey.substr(0, pos);
+            string num = strKey.substr(pos + 1, strKey.size());
+            stringstream ss;
+            ss << num;
+            int index;
+            ss >> index;
+            if (type == "t") {
+                element_init_G1(arrN[index - 1], pairing);
+                element_from_bytes_compressed(arrN[index - 1], sb);
+            } else if (type == "v") {
+                element_init_G1(arrM[index - 1], pairing);
+                element_from_bytes_compressed(arrM[index - 1], sb);
+            }
+        }
+    }
+    if (tag == 1) {
+        element_init_Zr(y, pairing);
+        string strVal = value[strKey.c_str()].asString();
+        mpz_t gmp_y;
+        const char * chargmp_y = strVal.c_str();
+        mpz_init_set_str(gmp_y, chargmp_y, 10);
+        element_set_mpz(y, gmp_y);
+    }
+    if (tag == 2) {
+        int iVal = value[strKey.c_str()].asInt();
+        if (strKey == "N") {
+            N = iVal;
+        } else if (strKey == "M") {
+            M = iVal;
+        }
+    }
+
+}
+
+}
+string readFile(string path){
+	stringstream ss;
+	fstream readPathData(path.c_str());
+	ss << readPathData.rdbuf();
+	string data = ss.str();
+	ss.clear();
+	ss.str("");
+	readPathData.close();
+	return data;
+}
 
 
 int main(int argc, char **argv) {
