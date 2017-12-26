@@ -101,6 +101,47 @@ for (Json::Value::Members::iterator iterMember = members.begin(); iterMember != 
             M = iVal;
         }
     }
+    if (tag == 3) {
+       	element_t temp;
+        element_init_G1(temp, pairing);
+        string str = value[strKey.c_str()].asString();
+        char * p;
+        int len = str.length();
+        p = new char[len + 1];
+        strcpy(p, str.c_str());
+        unsigned char * sb = (unsigned char * ) p;
+        element_from_bytes_compressed(temp, sb);
+        int pos = strKey.find("-");
+        if (pos == -1) {
+            if (strKey == "g") {
+                element_init_G1(g, pairing);
+                element_from_bytes_compressed(g, sb);
+            } else if (strKey == "g1") {
+                element_init_G1(g1, pairing);
+                element_from_bytes_compressed(g1, sb);
+            } else if (strKey == "g2") {
+                element_init_G1(g2, pairing);
+                element_from_bytes_compressed(g2, sb);
+            } else if (strKey == "v") {
+                element_init_G1(v, pairing);
+                element_from_bytes_compressed(v, sb);
+            }
+        } else {
+            string type = strKey.substr(0, pos);
+            string num = strKey.substr(pos + 1, strKey.size());
+            stringstream ss;
+            ss << num;
+            int index;
+            ss >> index;
+            if (type == "D") {
+                element_init_G1(arrN[index - 1], pairing);
+                element_from_bytes_compressed(arrN[index - 1], sb);
+            } else if (type == "d") {
+                element_init_G1(arrM[index - 1], pairing);
+                element_from_bytes_compressed(arrM[index - 1], sb);
+            }
+        }
+    }
 
 }
 
@@ -126,17 +167,9 @@ element_t A;
 element_t z;
 
 
-
 //int n,m,d;
 //scanf("%d %d", &n,&m);
 //int n=10,m=10;
-
-
-
-
-
-
-
 
 
 
@@ -146,15 +179,18 @@ string config = readFile(configPath);
 string PP = readFile(PPPath);
 string MK = readFile(MKPath);
 
+
 pairing_t pairing;
 pbc_demo_pairing_init(pairing, argc, argv);
 
 Json::Reader reader;
 Json::Reader reader1;
 Json::Reader reader2;
+
 Json::Value value;
 Json::Value value1;
 Json::Value value2;
+
 
 if(!reader2.parse(config,value2)){
 	cout<<"cannot read config file!\n";
@@ -177,6 +213,8 @@ if(!reader1.parse(MK,value1)){
 	return 0;
 }
 getJsonValueNKey(value1,1,pairing,NULL,NULL);
+
+
 
 
 //--------EXTRACT--------------
